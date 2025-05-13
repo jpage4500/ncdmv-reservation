@@ -1,0 +1,58 @@
+name: NCDMV Reservation Check
+on:
+  workflow_dispatch:
+  # uncomment the following to run every hour
+  # schedule:
+  #     # every hour
+  #   - cron: "0 * * * *"
+jobs:
+  send-mail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: setup python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: install CLI tools
+        run: |
+          pipx install --python "$(which python3.12)" ncdmv-reservation
+          pipx install sendgrid-cli
+      - name: create openssl.cnf
+        run: |
+          command cat <<'EOF' > openssl.cnf
+          openssl_conf = openssl_init
+
+          [openssl_init]
+          ssl_conf = ssl_sect
+
+          [ssl_sect]
+          system_default = system_default_sect
+
+          [system_default_sect]
+          Options = UnsafeLegacyRenegotiation
+
+          EOF
+
+      - name: Send email
+        shell: bash
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          OPENSSL_CONF: ${{ github.workspace }}/openssl.cnf
+        run: |
+          echo "::group::NC DMV Driver License Office Availability"
+          ncdmv-driver-license-office-availability | tee ncdmv.json
+          echo "::endgroup::"
+          AVAIL="$(<ncdmv.json jq '.[] | select(.office_name == "Monroe") | .is_reservable' -r)"
+          MSG="Monroe is reservable: $AVAIL"
+          echo "$MSG"
+          # if false, don't exit 0
+          if [[ "$AVAIL" == "false" ]]; then
+            echo 'not sending email'
+            exit 0
+          fi
+          curl -s --user "api:${{ secrets.MAILGUN_API_KEY }}" \
+            https://api.mailgun.net/v3/${{ secrets.MAILGUN_DOMAIN }}/messages \
+            -F from="${{ secrets.FROM_EMAIL }}" \
+            -F to="${{ secrets.TO_EMAIL }}" \
+            -F subject="$MSG" \
+            -F text="This email was sent automatically from a GitHub Action!"          
