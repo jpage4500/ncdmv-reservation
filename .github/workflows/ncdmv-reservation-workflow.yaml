@@ -1,10 +1,9 @@
 name: NCDMV Reservation Check
 on:
   workflow_dispatch:
-  # uncomment the following to run every hour
-  # schedule:
-  #     # every hour
-  #   - cron: "0 * * * *"
+  schedule:
+    # every hour
+    - cron: "0 * * * *"
 jobs:
   send-mail:
     runs-on: ubuntu-latest
@@ -16,7 +15,6 @@ jobs:
       - name: install CLI tools
         run: |
           pipx install --python "$(which python3.12)" ncdmv-reservation
-          pipx install sendgrid-cli
       - name: create openssl.cnf
         run: |
           command cat <<'EOF' > openssl.cnf
@@ -35,9 +33,6 @@ jobs:
 
       - name: Send email
         shell: bash
-        env:
-          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-          OPENSSL_CONF: ${{ github.workspace }}/openssl.cnf
         run: |
           echo "::group::NC DMV Driver License Office Availability"
           ncdmv-driver-license-office-availability | tee ncdmv.json
