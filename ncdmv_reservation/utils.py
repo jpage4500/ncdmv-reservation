@@ -28,7 +28,7 @@ def get_ncdmv_driver_license_office_availability_html(headless: bool = True) -> 
         wait.until(EC.element_to_be_clickable((By.ID, "cmdMakeAppt"))).click()
         wait.until(
             EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, ".QflowObjectItem:nth-child(2) .form-control-child")
+                (By.CSS_SELECTOR, ".QflowObjectItem:nth-child(6) .form-control-child")
             )
         ).click()
         wait.until(EC.element_to_be_clickable((By.ID, "search-input"))).click()
